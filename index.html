@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hertziness</title>
+    <meta name="description" content="本地处理，离线可用的声音性别分析工具。" />
+    <meta name="theme-color" content="#2563eb" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Hertziness - Trans Voice Tool" />
+    <meta property="og:description" content="本地处理，离线可用的声音性别分析工具。" />
+
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="icon" href="icons/icon-512.png" sizes="512x512" type="image/png" />
+
+    <!-- 尽早注册 Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch((err) => {
+          console.error('Service worker registration failed:', err);
+        });
+      }
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VLPRVGZJ4K"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-VLPRVGZJ4K');
+    </script>
+    <script
+      src="https://js.sentry-cdn.com/4f29aedced6e163befe1ee83e4b22851.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="layout-container">
+      <!-- 左侧：提词文本框 -->
+      <aside class="left-panel">
+        <section class="panel prompt-panel">
+          <div class="panel-header">
+            <h2>提词</h2>
+            <span class="prompt-source-text" id="promptSourceText">
+              <i class="info-icon">!</i>
+              <span id="promptSourceLabel">加载中...</span>
+            </span>
+            <button id="resetPromptBtn">重置</button>
+          </div>
+          <textarea id="promptText" class="prompt-textarea" placeholder="在此粘贴或输入提词内容..."></textarea>
+        </section>
+
+        <!-- 版权声明弹窗 -->
+        <div id="copyrightModal" class="modal-overlay">
+          <div class="modal-content">
+            <p>提词功能所提供的练习文本由网站编写整理，供用户练习使用。</p>
+            <p>用户也可以自行输入或粘贴其他练习内容。输入的文本会保存在浏览器本地存储中，不会上传至服务器。</p>
+            <button id="closeModalBtn">关闭</button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右侧：原有UI内容 -->
+      <main class="right-panel">
+        <header>
+          <h1>Hertziness</h1>
+          <p>本地处理，离线可用的声音性别分析工具</p>
+        </header>
+
+        <!-- 实时录音分析区域 -->
+        <section class="panel">
+          <div class="panel-header">
+            <h2>分析</h2>
+            <div class="header-controls">
+              <span id="loadingStatus" class="loading-status"></span>
+              <span id="perfWarning" class="perf-warning" aria-live="polite">
+                <span class="perf-icon" aria-hidden="true">!</span>
+                推理可能卡顿
+              </span>
+              <button id="pipBtn" disabled>画中画</button>
+              <button id="recordBtn" disabled>开始录音</button>
+            </div>
+          </div>
+          <div class="realtime-result">
+            <div class="gender-bars-wrapper">
+              <div class="gender-bars">
+                <div class="gender-bar">
+                  <div class="gender-label">男性</div>
+                  <div class="bar-container">
+                    <div id="maleBar" class="bar male-bar" style="width: 0%"></div>
+                  </div>
+                  <div id="malePercent" class="percent">0%</div>
+                </div>
+                <div class="gender-bar">
+                  <div class="gender-label">女性</div>
+                  <div class="bar-container">
+                    <div id="femaleBar" class="bar female-bar" style="width: 0%"></div>
+                  </div>
+                  <div id="femalePercent" class="percent">0%</div>
+                </div>
+              </div>
+              <div class="pitch-display-inline">
+                <span id="f0Value" class="pitch-number">--</span>
+                <span class="pitch-unit">Hz</span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="genderChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <canvas id="f0Chart"></canvas>
+          </div>
+        </section>
+
+        <!-- 设置区域 -->
+        <section class="panel settings-panel">
+          <div class="panel-header">
+            <h2>设置</h2>
+            <button id="resetParamsBtn" title="恢复所有参数为默认值">重置</button>
+          </div>
+          <div class="settings-content">
+            <div class="setting-group">
+              <div class="setting-group-header">
+                <h3>时间跨度</h3>
+                <span class="setting-effect"><i class="info-icon">i</i>刷新生效</span>
+              </div>
+              <label class="setting-label">
+                横轴时长
+                <input type="number" id="timeSpanInput" value="30">
+                秒
+              </label>
+            </div>
+            <div class="setting-group">
+              <div class="setting-group-header">
+                <h3>音高目标</h3>
+                <span class="setting-effect"><i class="info-icon">i</i>即时生效</span>
+              </div>
+              <label class="setting-label">
+                目标频率
+                <input type="number" id="f0TargetInput" value="200">
+                Hz
+              </label>
+            </div>
+            <div class="setting-group">
+              <div class="setting-group-header">
+                <h3>图表范围</h3>
+                <span class="setting-effect"><i class="info-icon">i</i>即时生效</span>
+              </div>
+              <label class="setting-label">
+                下界
+                <input type="number" id="genderMinInput" value="85">
+                %
+              </label>
+              <label class="setting-label">
+                上界
+                <input type="number" id="genderMaxInput" value="99.8">
+                %
+              </label>
+              <label class="setting-label">
+                目标
+                <input type="number" id="genderTargetInput" value="98.2">
+                %
+              </label>
+            </div>
+            <div class="setting-group">
+              <div class="setting-group-header">
+                <h3>阈值报警</h3>
+                <span class="setting-effect"><i class="info-icon">i</i>即时生效</span>
+              </div>
+              <div class="setting-row">
+                <label class="setting-label">
+                  范围(女)
+                  <input type="number" id="alertMinInput" class="narrow-input" value="20">
+                  -
+                  <input type="number" id="alertMaxInput" class="narrow-input" value="98.2">
+                  %
+                </label>
+              </div>
+              <div class="setting-row">
+                <label class="setting-label">
+                  持续时间
+                  <input type="number" id="alertDurationInput" value="5">
+                  秒
+                </label>
+                <button id="enableAlertBtn">启用</button>
+              </div>
+            </div>
+            <div class="setting-group">
+              <div class="setting-group-header">
+                <h3>相关应用</h3>
+                <span class="setting-effect"><i class="info-icon">↗</i></span>
+              </div>
+              <div class="link-grid">
+                <a href="https://acousticgender.space/" target="_blank" rel="noopener" class="link-card">
+                  <img src="link_icons/acousticgender.png" alt="" class="link-icon">
+                  Acoustic Genderspace Viewer
+                </a>
+                <a href="https://app.genderfluentapp.com/" target="_blank" rel="noopener" class="link-card">
+                  <img src="link_icons/genderfluent.ico" alt="" class="link-icon">
+                  Genderfluent
+                </a>
+                <a href="https://voice.hydev.org/" target="_blank" rel="noopener" class="link-card">
+                  <img src="link_icons/voicetools.png" alt="" class="link-icon">
+                  Voice Tools (Alpha)
+                </a>
+              </div>
+            </div>
+            <div class="setting-group">
+              <div class="setting-group-header">
+                <h3>关于</h3>
+                <span class="setting-effect"><i class="heart-icon">♥</i></span>
+              </div>
+              <p class="about-content">开源于 <a href="https://github.com/hertzyang/hertziness" target="_blank" rel="noopener">GitHub</a></p>
+              <p class="about-content">Made with ♥ by <a href="https://hertz.page" target="_blank" rel="noopener">hertzyang</a></p>
+            </div>
+            <!--
+            <div class="setting-group">
+              <div class="setting-group-header">
+                <h3>高级设置</h3>
+                <span class="setting-effect"><i class="info-icon">!</i></span>
+              </div>
+              <button id="clearDataBtn" class="danger-btn">清空站点数据</button>
+            </div>
+            -->
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+    <script src="https://unpkg.com/onnxruntime-web@1.20.0/dist/ort.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
