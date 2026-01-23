@@ -1207,43 +1207,12 @@ recordBtn.addEventListener('click', () => {
 const PROMPT_STORAGE_KEY = 'userPromptText';
 let initialPromptValue = ''; // 记录初始加载时的值，用于判断是否真的改变了
 
-// 更新提词来源提示文本
-function updatePromptSourceLabel(isUserInput) {
-  const promptSourceLabel = document.getElementById('promptSourceLabel');
-  if (isUserInput) {
-    promptSourceLabel.innerHTML = '以下文本来源于用户自主输入';
-  } else {
-    promptSourceLabel.innerHTML = '以下文本来源于网站提供，查看<a href="#" id="copyrightLink">版权声明</a>';
-    // 绑定版权链接点击事件
-    const copyrightLink = document.getElementById('copyrightLink');
-    if (copyrightLink) {
-      copyrightLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        showCopyrightModal();
-      });
-    }
-  }
-}
-
-// 显示版权声明弹窗
-function showCopyrightModal() {
-  const modal = document.getElementById('copyrightModal');
-  modal.classList.add('visible');
-}
-
-// 关闭版权声明弹窗
-function closeCopyrightModal() {
-  const modal = document.getElementById('copyrightModal');
-  modal.classList.remove('visible');
-}
-
 // 加载提词内容（优先从 localStorage，否则从 JSON 随机加载）
 async function loadPrompt() {
   const savedPrompt = localStorage.getItem(PROMPT_STORAGE_KEY);
   if (savedPrompt) {
     promptText.value = savedPrompt;
     initialPromptValue = savedPrompt;
-    updatePromptSourceLabel(true);
   } else {
     await loadRandomStory();
   }
@@ -1262,7 +1231,6 @@ promptText.addEventListener('blur', () => {
   if (currentValue !== initialPromptValue) {
     localStorage.setItem(PROMPT_STORAGE_KEY, currentValue);
     initialPromptValue = currentValue;
-    updatePromptSourceLabel(true);
   }
 });
 
@@ -1270,20 +1238,6 @@ promptText.addEventListener('blur', () => {
 const resetPromptBtn = document.getElementById('resetPromptBtn');
 resetPromptBtn.addEventListener('click', () => {
   resetPrompt();
-});
-
-// 版权声明弹窗关闭按钮
-const closeModalBtn = document.getElementById('closeModalBtn');
-closeModalBtn.addEventListener('click', () => {
-  closeCopyrightModal();
-});
-
-// 点击弹窗外部关闭
-const copyrightModal = document.getElementById('copyrightModal');
-copyrightModal.addEventListener('click', (e) => {
-  if (e.target === copyrightModal) {
-    closeCopyrightModal();
-  }
 });
 
 // 输入验证函数
@@ -1694,7 +1648,6 @@ async function loadRandomStory() {
     }
     promptText.value = cachedStoryText;
     initialPromptValue = promptText.value;
-    updatePromptSourceLabel(false);
   } catch (err) {
     if (window.Sentry && err instanceof Error) {
       window.Sentry.captureException(err);
@@ -1702,7 +1655,6 @@ async function loadRandomStory() {
     console.error('故事加载失败:', err);
     promptText.value = `${err.message}`;
     initialPromptValue = promptText.value;
-    updatePromptSourceLabel(false);
   }
 }
 
