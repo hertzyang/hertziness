@@ -1141,7 +1141,7 @@ async function startRecording() {
     const msg = error.message || String(error);
     if (msg.includes('Requested device not found')) {
       alert('未找到麦克风设备');
-    } else if (msg.includes('NotAllowedError') || msg.includes('Permission dismissed')) {
+    } else if (msg.includes('NotAllowedError') || msg.includes('Permission denied')) {
       alert('麦克风权限被拒绝');
     } else {
       alert('启动录音失败: ' + msg);
