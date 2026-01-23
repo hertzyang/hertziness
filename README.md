@@ -15,6 +15,26 @@ Hertziness 是一款纯前端的声音性别分析工具，通过浏览器本地
 
 访问 [voice.hertz.page](https://voice.hertz.page) 即可开始使用，无需安装。
 
+## 部署说明
+
+本项目使用 `SharedArrayBuffer` 实现多线程推理，部署时需要设置以下 HTTP 响应头：
+
+```
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Opener-Policy: same-origin
+```
+
+### Cloudflare Pages
+
+使用项目附带的 `_headers` 文件：
+
+```
+/*
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Opener-Policy: same-origin
+```
+
+
 ## 其他
 
 《AI 真的太好用了你知道吗》
