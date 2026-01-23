@@ -1138,7 +1138,14 @@ async function startRecording() {
     if (window.Sentry && error instanceof Error) {
       window.Sentry.captureException(error);
     }
-    alert('启动录音失败: ' + error.message);
+    const msg = error.message || String(error);
+    if (msg.includes('Requested device not found')) {
+      alert('未找到麦克风设备');
+    } else if (msg.includes('NotAllowedError') || msg.includes('Permission dismissed')) {
+      alert('麦克风权限被拒绝');
+    } else {
+      alert('启动录音失败: ' + msg);
+    }
   }
 }
 
