@@ -91,22 +91,20 @@ let cachedF0Ranges = {
 };
 
 function setStatus(message) {
-  // 只在下载中或失败时显示消息
-  if (message.includes('加载模型中') || message.includes('模型加载失败')) {
-    if (message.includes('加载模型中')) {
-      // 检测是否是首次访问
-      const isFirstVisit = !localStorage.getItem('modelLoadedBefore');
-      if (isFirstVisit) {
-        loadingStatusEl.textContent = '正在下载... (约70MB）';
-      } else {
-        loadingStatusEl.textContent = '正在加载...';
-      }
-    } else {
-      loadingStatusEl.textContent = message;
-    }
-  } else {
+  if (!loadingStatusEl) return;
+
+  if (!message) {
     loadingStatusEl.textContent = '';
+    return;
   }
+
+  if (message.includes('加载模型中')) {
+    const isFirstVisit = !localStorage.getItem('modelLoadedBefore');
+    loadingStatusEl.textContent = isFirstVisit ? '正在下载... (约70MB）' : '正在加载...';
+    return;
+  }
+
+  loadingStatusEl.textContent = message;
 }
 
 function updatePerformanceWarning(hasVoice, durationMs, thresholdMs) {
@@ -1658,12 +1656,35 @@ async function loadRandomStory() {
   }
 }
 
-loadPrompt();
+loadPrompt().catch((err) => {
+  if (window.Sentry && err instanceof Error) {
+    window.Sentry.captureException(err);
+  }
+  console.error(err);
+  setStatus(`提词加载失败: ${err?.message || String(err)}`);
+});
 
-// 立即初始化图表
-initChart();
+try {
+  // 立即初始化图表
+  initChart();
+} catch (err) {
+  if (window.Sentry && err instanceof Error) {
+    window.Sentry.captureException(err);
+  }
+  console.error(err);
+  setStatus(`图表加载失败: ${err?.message || String(err)}`);
+}
+
 if (f0ChartCanvas) {
-  initF0Chart();
+  try {
+    initF0Chart();
+  } catch (err) {
+    if (window.Sentry && err instanceof Error) {
+      window.Sentry.captureException(err);
+    }
+    console.error(err);
+    setStatus(`图表加载失败: ${err?.message || String(err)}`);
+  }
 }
 
 loadModel().catch((err) => {
