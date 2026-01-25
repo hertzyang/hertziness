@@ -478,7 +478,7 @@ function initF0Chart() {
           borderDash: [5, 5]
         },
         {
-          label: 'F0目标',
+          label: '目标',
           data: [f0TargetValue, f0TargetValue],
           borderColor: '#a855f7',
           borderWidth: 2,
@@ -1688,11 +1688,19 @@ if (f0ChartCanvas) {
 }
 
 loadModel().catch((err) => {
-  if (window.Sentry && err instanceof Error) {
-    window.Sentry.captureException(err);
+  const errMsg = err?.message || String(err);
+  if (errMsg.toLowerCase().includes('out of memory') || errMsg.toLowerCase().includes('oom')) {
+    setStatus('内存不足');
+    if (window.Sentry) {
+      window.Sentry.captureMessage('oom', 'warning');
+    }
+  } else {
+    if (window.Sentry && err instanceof Error) {
+      window.Sentry.captureException(err);
+    }
+    console.error(err);
+    setStatus(`模型加载失败: ${errMsg}`);
   }
-  console.error(err);
-  setStatus(`模型加载失败: ${err.message}`);
 });
 
 // ========== 画中画功能 ==========
